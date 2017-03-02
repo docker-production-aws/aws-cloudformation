@@ -1,0 +1,129 @@
+---
+cf_default_stack_policy:
+  Statement:
+    - Effect: "Allow"
+      Action: "Update:*"
+      Principal: "*"
+      Resource: "*"
+
+cf_cloudwatch_ec2_logs_policy: 
+  PolicyName: CloudWatchLogs
+  PolicyDocument:
+    Version: "2012-10-17"
+    Statement:
+      - Effect: Allow
+        Action:
+          - "logs:CreateLogGroup"
+          - "logs:CreateLogStream"
+          - "logs:PutLogEvents"
+          - "logs:DescribeLogStreams"
+        Resource:
+          Fn::Sub: "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AWS::StackName}*"
+
+cf_iam_groups:
+  Administrators:
+    Policies:
+      - PolicyName: AssumeAdminRole
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+              - "sts:AssumeRole"
+              Resource:
+              - Fn::Sub: ${AdminRole.Arn}
+  Users:
+    Policies:
+      - PolicyName: RequireMfa
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: "AllowAllUsersToListAccounts"
+              Effect: "Allow"
+              Action:
+                - "iam:ListAccountAliases"
+                - "iam:GetAccountPasswordPolicy"
+                - "iam:ListUsers"
+              Resource: "*"
+            - Sid: "AllowIndividualUserToSeeTheirAccountInformation"
+              Effect: "Allow"
+              Action:
+                - "iam:ChangePassword"
+                - "iam:CreateLoginProfile"
+                - "iam:DeleteLoginProfile"
+                - "iam:GetAccountSummary"
+                - "iam:GetLoginProfile"
+                - "iam:UpdateLoginProfile"
+              Resource: 
+                Fn::Sub: "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
+            - Sid: "AllowIndividualUserToListTheirMFA"
+              Effect: "Allow"
+              Action:
+                - "iam:ListVirtualMFADevices"
+                - "iam:ListMFADevices"
+              Resource:
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:mfa/*"
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
+            - Sid: "AllowIndividualUserToManageTheirMFA"
+              Effect: "Allow"
+              Action:
+                - "iam:CreateVirtualMFADevice"
+                - "iam:EnableMFADevice"
+                - "iam:ResyncMFADevice"          
+              Resource:
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:mfa/${!aws:username}"
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
+            - Sid: "AllowIndividualUserToDeleteTheirMFAOnlyIfMFA"
+              Effect: "Allow"
+              Action:
+                - "iam:DeactivateMFADevice"
+                - "iam:DeleteVirtualMFADevice"      
+              Resource:
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:mfa/${!aws:username}"
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
+              Condition:
+                "Null":
+                  aws:MultiFactorAuthAge: "false"
+            - Sid: "DenyEverythingExceptForBelowUnlessMFA"
+              Effect: "Deny"
+              NotAction: 
+                - "iam:ListVirtualMFADevices"
+                - "iam:ListMFADevices"
+                - "iam:ListUsers"
+                - "iam:ListAccountAliases"
+                - "iam:CreateVirtualMFADevice"
+                - "iam:DeactivateMFADevice"
+                - "iam:DeleteVirtualMFADevice"
+                - "iam:EnableMFADevice"
+                - "iam:ResyncMFADevice"
+                - "iam:ChangePassword"
+                - "iam:CreateLoginProfile"
+                - "iam:DeleteLoginProfile"
+                - "iam:GetAccountPasswordPolicy"
+                - "iam:GetAccountSummary"
+                - "iam:GetLoginProfile"
+                - "iam:UpdateLoginProfile"
+              Resource: "*"
+              Condition:
+                "Null":
+                  aws:MultiFactorAuthAge: "true"
+            - Sid: "DenyIamAccessToOtherAccountsUnlessMFA"
+              Effect: "Deny"
+              Action: 
+                - "iam:CreateVirtualMFADevice"
+                - "iam:DeactivateMFADevice"
+                - "iam:DeleteVirtualMFADevice"
+                - "iam:EnableMFADevice"
+                - "iam:ResyncMFADevice"
+                - "iam:ChangePassword"
+                - "iam:CreateLoginProfile"
+                - "iam:DeleteLoginProfile"
+                - "iam:GetAccountSummary"
+                - "iam:GetLoginProfile"
+                - "iam:UpdateLoginProfile"
+              NotResource:
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:mfa/${!aws:username}"
+                - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:user/${!aws:username}"
+              Condition:
+                "Null":
+                  aws:MultiFactorAuthAge: "true"

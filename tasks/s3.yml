@@ -1,0 +1,32 @@
+---
+- block:
+  - name: obtain account id
+    shell: aws sts get-caller-identity
+    changed_when: false
+    register: cf_aws_identity
+  - debug: msg={{ cf_aws_identity }}
+    when: debug | default(false)
+  - name: set aws account fact
+    set_fact:
+      cf_account_id: "{{ (cf_aws_identity.stdout | from_json).get('Account') }}"
+  - name: set s3 bucket fact for account id {{ cf_account_id }}
+    set_fact:
+      cf_s3_bucket: "{{ cf_account_id + '-cfn-templates' }}"
+  when: cf_s3_bucket is not defined
+  tags:
+    - generate
+
+- block:
+  - name: upload template to S3
+    s3:
+      mode: put
+      bucket: "{{ cf_s3_bucket }}"
+      object: "{{ cf_stack_name }}/{{ current_timestamp }}/stack.json"
+      src: "{{ cf_stack_template_json }}"
+    changed_when: false
+    register: cf_s3_result
+  - name: set S3 url fact
+    set_fact:
+      cf_s3_template_url: "{{ cf_s3_result.url }}"
+  tags:
+    - generate

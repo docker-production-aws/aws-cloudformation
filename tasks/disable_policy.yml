@@ -1,0 +1,6 @@
+---
+- block:
+  - name: disable current stack policy
+    shell: aws cloudformation set-stack-policy --stack-name '{{ cf_stack_name }}' --stack-policy-body '{{ cf_default_stack_policy | to_json }}'
+    changed_when: False
+

@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: ECR Repositories
+
+Resources:
+{% for repo_name, repo_config in config_ecr_repos.items() %}
+  {{ repo_name | regex_replace('[^a-zA-Z0-9]', ' ') | title | regex_replace('\s', '') }}:
+    Type: "AWS::ECR::Repository"
+    Properties:
+      RepositoryName: "{{ repo_name }}"
+{% if repo_config.get('rw_accounts') or repo_config.get('ro_accounts') %}
+      RepositoryPolicyText:
+        Version: "2008-10-17"
+        Statement:
+{% if repo_config.get('rw_accounts') %}
+        - Sid: AllowPushPull
+          Effect: Allow
+          Principal:
+            AWS:
+{% for account in repo_config.get('rw_accounts') %}
+            - "arn:aws:iam::{{ account }}:root"
+{% endfor %}
+          Action:
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchGetImage"
+          - "ecr:BatchCheckLayerAvailability"
+          - "ecr:PutImage"
+          - "ecr:InitiateLayerUpload"
+          - "ecr:UploadLayerPart"
+          - "ecr:CompleteLayerUpload"
+{% endif %}
+{% if repo_config.get('ro_accounts') %}
+        - Sid: AllowPull
+          Effect: Allow
+          Principal:
+            AWS:
+{% for account in repo_config.get('ro_accounts') %}
+            - "arn:aws:iam::{{ account }}:root"
+{% endfor %}
+          Action:
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchGetImage"
+          - "ecr:BatchCheckLayerAvailability"
+{% endif %}
+{% endif %}
+{% endfor %}

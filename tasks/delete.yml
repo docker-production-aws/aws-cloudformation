@@ -1,0 +1,10 @@
+---
+- block:
+    - name: delete application stack
+      cloudformation:
+        stack_name: "{{ cf_stack_name }}"
+        state: absent
+      failed_when: False
+  when: cf_delete_stack | default(False) | bool
+  tags:
+    - delete

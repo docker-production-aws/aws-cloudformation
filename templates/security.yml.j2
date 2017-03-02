@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Security Resources
+
+Resources:
+  AdminRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: admin
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:root"
+{% for account in config_iam_admin_accounts | default([]) %}
+              - "arn:aws:iam::{{ account }}:root"
+{% endfor %}
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+{% for group_name, group_config in (cf_iam_groups | combine(config_iam_groups | default({}))).items() %}
+  {{ group_name }}Group:
+    Type: "AWS::IAM::Group"
+    Properties:
+      GroupName: "{{ group_config.GroupName | default(group_name) }}"
+      Policies: 
+        {{ group_config.Policies | default([]) | to_nice_yaml(indent=2) | indent(8, False) }}
+      ManagedPolicyArns:
+        {{ group_config.ManagedPolicyArns | default([]) | to_nice_yaml(indent=2) | indent(8, False) }}
+{% endfor %}
+{% for cert_name,cert_config in (config_acm_certificates | default({})).items() %}
+{% set cert_resource = cert_name | regex_replace('[^a-zA-Z0-9]', ' ') | title | regex_replace('\s', '') %}
+  {{ cert_resource }}Certificate:
+    Type: "AWS::CertificateManager::Certificate"
+    Properties:
+      DomainName: "{{ cert_config.DomainName | default(cert_name) }}"
+      SubjectAlternativeNames:
+        {{ cert_config.SubjectAlternativeNames | default([]) | to_nice_yaml(indent=2) | indent(8, False) }}
+{% if cert_config.DomainValidationOptions is defined %}
+      DomainValidationOptions:
+        {{ cert_config.DomainValidationOptions | to_nice_yaml(indent=2) | indent(8, False) }}
+{% endif %}
+{% endfor %}
+Outputs:
+  AdminRoleArn:
+    Description: "IAM Admin Role ARN"
+    Value:
+      Fn::Sub: ${AdminRole.Arn}
+    Export:
+      Name: AdminRoleArn
+{% for cert_name,cert_config in (config_acm_certificates | default({})).items() %}
+{% set cert_resource = cert_name | regex_replace('[^a-zA-Z0-9]', ' ') | title | regex_replace('\s', '') %}
+  {{ cert_resource }}CertificateArn:
+    Description: "{{ cert_config.DomainName | default(cert_name) }} Certificate ARN"
+    Value: { "Ref": "{{ cert_resource }}Certificate" }
+    Export:
+      Name: "{{ cert_resource }}CertificateArn"
+{% endfor %}

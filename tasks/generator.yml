@@ -1,0 +1,36 @@
+---
+- block:
+    - name: set template encoding facts
+      set_fact:
+        cf_stack_template_yaml: "{{ cf_build_folder }}/{{ cf_stack_name }}-stack.yml"
+        cf_stack_template_json: "{{ cf_build_folder }}/{{ cf_stack_name }}-stack.json"
+        cf_stack_template_temp_json: "{{ cf_build_folder }}/{{ cf_stack_name }}-stack.tmp.json"
+        cf_stack_policy_json: "{{ cf_build_folder }}/{{ cf_stack_name }}-policy.json"
+        cf_stack_config_json: "{{ cf_build_folder }}/{{ cf_stack_name }}-config.json"
+    - name: generate YAML template
+      template:
+        src: "{{ cf_stack_template }}"
+        dest: "{{ cf_stack_template_yaml }}"
+      changed_when: False
+    - name: generate stack policy
+      copy: content={{ cf_stack_policy | default(cf_default_stack_policy) | to_json }} dest={{ cf_stack_policy_json }}
+      changed_when: False
+    - name: generate compact JSON template
+      copy: content={{ lookup('file', cf_stack_template_yaml) | from_yaml | to_json }} dest={{ cf_stack_template_temp_json }}
+      changed_when: False
+    - name: remove whitespace from compact JSON template
+      shell: cat {{ cf_stack_template_temp_json }} | jq -c '.' > {{ cf_stack_template_json }}
+      changed_when: False
+    - name: remove temp compact JSON template
+      file: path={{ cf_stack_template_temp_json }} state=absent
+      changed_when: False
+    - name: set stack config
+      set_fact:
+        cf_stack_config:
+          Parameters: "{{ cf_stack_inputs | default({}) }}"
+          StackPolicy: "{{ cf_stack_policy | default(cf_default_stack_policy) }}"
+    - name: generate stack config
+      copy: content={{ cf_stack_config | to_json }} dest={{ cf_stack_config_json }}
+      changed_when: False
+  tags:
+    - generate

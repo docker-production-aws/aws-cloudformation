@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation Resources
+
+Resources:
+  CfnTemplatesBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName:
+        Fn::Sub: "${AWS::AccountId}-cfn-templates"
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Sub: "${AWS::AccountId}-cfn-templates"
+  CfnLambdaBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: 
+        Fn::Sub: "${AWS::AccountId}-cfn-lambda"
+      VersioningConfiguration:
+        Status: "Enabled"
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: "${AWS::AccountId}-cfn-lambda"
+{% if config_cfn_lambda_remote_accounts is defined %}
+  CfnLambdaBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: { "Ref": "CfnLambdaBucket" }
+      PolicyDocument:
+        Statement:
+        - Sid: "Get Lambda Functions"
+          Effect: "Allow"
+          Principal:
+            AWS: 
+{% for account in config_cfn_lambda_remote_accounts %}
+            - "arn:aws:iam::{{ account }}:root"
+            - "arn:aws:iam::{{ account }}:root"
+{% endfor %}            
+          Action: 
+          - "s3:GetObject"
+          - "s3:GetObjectVersion"
+          Resource: 
+            Fn::Sub: "arn:aws:s3:::${AWS::AccountId}-cfn-lambda/*"
+{% endif %}
+  CfnMasterKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      Description: 
+        Fn::Sub: "Credential Store Master Key for ${AWS::StackName}"
+      Enabled: "true"
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: "key-policy"
+        Statement: 
+          - Sid: "Allow root account access to key"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Sub: "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: "Allow administration of the key"
+            Effect: "Allow"
+            Principal:
+              AWS:
+              - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:role/{{ config_cfn_admin_role | default('admin') }}"
+{% for arn in config_cfn_kms_admins | default([]) %}
+              - {{ arn | to_json }}
+{% endfor %}
+            Action:
+            - "kms:Create*"
+            - "kms:Describe*"
+            - "kms:Enable*"
+            - "kms:List*"
+            - "kms:Put*"
+            - "kms:Update*"
+            - "kms:Revoke*"
+            - "kms:Disable*"
+            - "kms:Get*"
+            - "kms:Delete*"
+            - "kms:ScheduleKeyDeletion"
+            - "kms:CancelKeyDeletion"
+            Resource: "*"
+          - Sid: "Allow encryption use"
+            Effect: "Allow"
+            Principal:
+              AWS:
+              - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:role/{{ config_cfn_admin_role | default('admin') }}"
+{% for arn in config_cfn_kms_encrypters | default([]) %}
+              - {{ arn | to_json }}
+{% endfor %}
+            Action:
+            - "kms:Encrypt"
+            - "kms:ReEncrypt*"
+            - "kms:GenerateDataKey*"
+            - "kms:DescribeKey"
+            Resource: "*"
+          - Sid: "Allow decryption use"
+            Effect: "Allow"
+            Principal:
+              AWS:
+              - Fn::Sub: "arn:aws:iam::${AWS::AccountId}:role/{{ config_cfn_admin_role | default('admin') }}"
+{% for arn in config_cfn_kms_decrypters | default([]) %}
+              - {{ arn | to_json }}
+{% endfor %}
+            Action:
+            - "kms:Decrypt"
+            - "kms:DescribeKey"
+            Resource: "*"
+Outputs:
+  CfnTemplatesBucketName:
+    Description: "CloudFormation Templates Bucket Name"
+    Value:
+      Fn::Sub: "${CfnTemplatesBucket.DomainName}"
+    Export:
+      Name: "CfnTemplatesBucket"
+  CfnTemplatesBucketURL:
+    Description: "CloudFormation Templates Bucket URL"
+    Value: 
+      Fn::Sub: "${CfnTemplatesBucket.WebsiteURL}"
+    Export:
+      Name: "CfnTemplatesBucketURL"
+  CfnMasterKey:
+    Description: "CloudFormation Master Key ID"
+    Value: 
+      Fn::Sub: "${CfnMasterKey}"
+    Export:
+      Name: "CfnMasterKey"
+  CfnMasterKeyArn:
+    Description: "CloudFormation Master Key ARN"
+    Value: 
+      Fn::Sub: "${CfnMasterKey.Arn}"
+    Export:
+      Name: "CfnMasterKeyArn"
+  CfnLambdaBucketName:
+    Description: "CloudFormation Lambda Bucket Name"
+    Value: 
+      Fn::Sub: "${CfnLambdaBucket.DomainName}"
+    Export:
+      Name: "CfnLambdaBucket"
+  CfnLambdaBucketURL:
+    Description: "CloudFormation Lambda Bucket URL"
+    Value: 
+      Fn::Sub: "${CfnLambdaBucket.WebsiteURL}"
+    Export:
+      Name: "CfnLambdaBucketURL"

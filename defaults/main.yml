@@ -1,0 +1,6 @@
+---
+# CloudFormation Template
+cf_stack_template: ./templates/stack.yml.j2
+
+# CloudFormation Job Folder
+cf_job_path: ./build
