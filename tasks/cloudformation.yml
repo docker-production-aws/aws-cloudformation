@@ -4,7 +4,7 @@
       set_fact:
         cf_stack_template_path: "{{ cf_stack_template_json }}"
       when: not cf_upload_s3 | default(false) | bool
-    - name: configure application stack
+    - name: configure cloudformation stack
       cloudformation:
         stack_name: "{{ cf_stack_name }}"
         stack_policy: "{{ cf_stack_policy_json }}"
