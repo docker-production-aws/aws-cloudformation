@@ -26,7 +26,8 @@
     - name: set stack facts
       set_fact:
         cf_stack_facts: "{{ cloudformation[cf_stack_name] }}"
-    - debug: msg={{ cf_stack_facts }}
+    - name: cf_stack_facts variable
+      debug: msg={{ cf_stack_facts }}
       when: debug | default(false) | bool
   tags:
     - deploy
