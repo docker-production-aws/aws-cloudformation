@@ -36,7 +36,6 @@ Resources:
             AWS: 
 {% for account in config_cfn_lambda_remote_accounts %}
             - "arn:aws:iam::{{ account }}:root"
-            - "arn:aws:iam::{{ account }}:root"
 {% endfor %}            
           Action: 
           - "s3:GetObject"
