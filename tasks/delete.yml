@@ -1,6 +1,6 @@
 ---
 - block:
-    - name: delete application stack
+    - name: delete cloudformation stack
       cloudformation:
         stack_name: "{{ cf_stack_name }}"
         state: absent
