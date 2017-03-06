@@ -7,31 +7,31 @@ Resources:
 {# Networking Resources #}
 {% for vpc_name, vpc_config in config_vpcs.items() %}
 {{ network.resources(
+    vpc_name,
     vpc_config.vpc_cidr,
+    vpc_config.vpc_domain,
     public_subnets=vpc_config.public_subnets | default(['public']),
     private_subnets=vpc_config.private_subnets | default(['medium','high','management']),
     az_count=vpc_config.az_config | default(2) | int, 
     subnet_size=vpc_config.subnet_size | default(24) | int,
     domain_name=vpc_config.domain_name | default(''),
-    vpc_root_domain=vpc_config.vpc_root_domain | default(''),
     private_domains=vpc_config.private_domains | default([]),
-    public_domains=vpc_config.public_domains | default([]),
-    prefix=vpc_name)
+    public_domains=vpc_config.public_domains | default([]))
 }}
 {% endfor %}
 Outputs:
 {# Networking Outputs #}
 {% for vpc_name, vpc_config in config_vpcs.items() %}
 {{ network.outputs(
+    vpc_name,
     vpc_config.vpc_cidr,
+    vpc_config.vpc_domain,
     public_subnets=vpc_config.public_subnets | default(['public']),
     private_subnets=vpc_config.private_subnets | default(['medium','high','management']),
     az_count=vpc_config.az_config | default(2) | int, 
     subnet_size=vpc_config.subnet_size | default(24) | int,
     domain_name=vpc_config.domain_name | default(''),
-    vpc_root_domain=vpc_config.vpc_root_domain | default(''),
     private_domains=vpc_config.private_domains | default([]),
-    public_domains=vpc_config.public_domains | default([]),
-    prefix=vpc_name)
+    public_domains=vpc_config.public_domains | default([]))
 }}
 {% endfor %}
