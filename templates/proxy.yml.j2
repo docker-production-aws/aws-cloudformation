@@ -1,4 +1,4 @@
-{% set prefix = config_network_label | default('default') | title %}
+{% set vpc_prefix = config_vpc_name | title %}
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: Squid Forward Proxy
@@ -13,7 +13,10 @@ Parameters:
   ApplicationAutoscalingDesiredCount:
     Type: Number
     Description: Application AutoScaling Group Desired Count
-    Default: {{ config_az_count | default(2) | int }}      
+    Default: {{ config_az_count | default(2) | int }}
+  KeyName:
+    Type: String
+    Description: EC2 Key Pair for SSH Access
   ProxyImage:
     Type: String
     Description: Docker Image for Proxy
@@ -32,24 +35,18 @@ Parameters:
     Type: String
     Description: Comma separated list of domains to whitelist
     Default: ""
-  KeyName:
-    Type: String
-    Description: EC2 Key Pair for SSH Access
-  Environment:
-    Type: String
-    Description: Stack Environment
 Resources:
   ProxyDnsRecord:
     Type: "AWS::Route53::RecordSet"
     Properties:
       Name:
-        Fn::Join: ["", [ "proxy.", "Fn::ImportValue": "{{ prefix }}VpcDomain" ] ]
+        Fn::Join: ["", [ "proxy.", "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain" ] ]
       TTL: "300"
       HostedZoneName:
-        Fn::Join: ["", [ "Fn::ImportValue": "{{ prefix }}VpcDomain", "." ] ]
+        Fn::Join: ["", [ "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain", "." ] ]
       Type: "CNAME"
       Comment: 
-        Fn::Sub: "Forward Proxy - ${Environment}"
+        Fn::Sub: "${AWS::StackName} Forward Proxy"
       ResourceRecords:
         - Fn::Sub: "${ApplicationLoadBalancer.DNSName}"
   ApplicationLoadBalancer:
@@ -60,9 +57,11 @@ Resources:
         - Ref: "ApplicationLoadBalancerSecurityGroup"
       Subnets:
 {% for zone in range(0, config_az_count | default(2) | int) %}
-        - Fn::ImportValue: "{{ prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
+        - Fn::ImportValue: "{{ vpc_prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
 {% endfor %}
+{% if config_az_count | default(2) | int > 1 %}
       CrossZone: "true"
+{% endif %}
       ConnectionSettings:
         IdleTimeout: 120
       ConnectionDrainingPolicy:
@@ -75,19 +74,19 @@ Resources:
       Tags:
         - Key: Name
           Value:
-            Fn::Sub: ${AWS::StackName}-${Environment}-elb
+            Fn::Sub: ${AWS::StackName}-elb
   ApplicationLoadBalancerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       VpcId:
-        Fn::ImportValue: "{{ prefix }}VpcId"
+        Fn::ImportValue: "{{ vpc_prefix }}VpcId"
       GroupDescription: "Proxy Load Balancer Security Group"
       SecurityGroupIngress:
         - IpProtocol: "tcp"
           FromPort: 3128
           ToPort: 3128
           CidrIp:
-            Fn::ImportValue: "{{ prefix }}VpcCidr"
+            Fn::ImportValue: "{{ vpc_prefix }}VpcCidr"
   ApplicationLoadBalancerToAutoscalingIngressTCP3128:
     Type: "AWS::EC2::SecurityGroupIngress"
     Properties:
@@ -125,7 +124,7 @@ Resources:
     Properties:
       VPCZoneIdentifier:
 {% for zone in range(0, config_az_count | default(2) | int) %}
-        - Fn::ImportValue: "{{ prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
+        - Fn::ImportValue: "{{ vpc_prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
 {% endfor %}
       LaunchConfigurationName: { "Ref" : "ApplicationAutoscalingLaunchConfiguration" }
       MinSize: "0"
@@ -171,7 +170,7 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       VpcId:
-        Fn::ImportValue: "{{ prefix }}VpcId"
+        Fn::ImportValue: "{{ vpc_prefix }}VpcId"
       GroupDescription: "Proxy Security Group"
       SecurityGroupIngress:
 {% for zone in range(0, config_az_count | default(2) | int) %}
@@ -179,7 +178,7 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp:
-            Fn::ImportValue: "{{ prefix }}ManagementSubnet{{ 'ABC'[loop.index0] }}Cidr"
+            Fn::ImportValue: "{{ vpc_prefix }}ManagementSubnet{{ 'ABC'[loop.index0] }}Cidr"
 {% endfor %}
       SecurityGroupEgress:
         - IpProtocol: "tcp"
@@ -195,7 +194,7 @@ Resources:
           ToPort: 53
           CidrIp:
             Fn::Join: ["", [
-              "Fn::ImportValue": "{{ prefix }}VpcDnsServer", "/32"
+              "Fn::ImportValue": "{{ vpc_prefix }}VpcDnsServer", "/32"
             ] ]
         - IpProtocol: "udp"
           FromPort: 123
@@ -351,14 +350,14 @@ Outputs:
     Value:
       Fn::Join: ["", [
         "http://proxy.",
-        "Fn::ImportValue": "{{ prefix }}VpcDomain",
+        "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain",
         ":3128"
       ] ]
     Export:
-      Name: "{{ prefix }}ProxyURL"
+      Name: "{{ vpc_prefix }}ProxyURL"
   ProxySecurityGroup:
     Description: "Squid Proxy Security Group"
     Value:
       Ref: ApplicationLoadBalancerSecurityGroup
     Export:
-      Name: "{{ prefix }}ProxySecurityGroup"
+      Name: "{{ vpc_prefix }}ProxySecurityGroup"
