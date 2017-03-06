@@ -15,6 +15,8 @@ Resources:
     az_count=vpc_config.az_config | default(2) | int, 
     subnet_size=vpc_config.subnet_size | default(24) | int,
     domain_name=vpc_config.domain_name | default(''),
+    dns_servers=vpc_config.dns_servers | default([]),
+    ntp_servers=vpc_config.ntp_servers | default([]),
     private_domains=vpc_config.private_domains | default([]),
     public_domains=vpc_config.public_domains | default([]))
 }}
@@ -31,6 +33,8 @@ Outputs:
     az_count=vpc_config.az_config | default(2) | int, 
     subnet_size=vpc_config.subnet_size | default(24) | int,
     domain_name=vpc_config.domain_name | default(''),
+    dns_servers=vpc_config.dns_servers | default([]),
+    ntp_servers=vpc_config.ntp_servers | default([]),
     private_domains=vpc_config.private_domains | default([]),
     public_domains=vpc_config.public_domains | default([]))
 }}
