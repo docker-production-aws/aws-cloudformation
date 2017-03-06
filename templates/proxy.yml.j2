@@ -1,4 +1,5 @@
 {% set vpc_prefix = config_vpc_name | title %}
+{% set az_count = config_az_count | default(2) | int %}
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: Squid Forward Proxy
@@ -13,7 +14,7 @@ Parameters:
   ApplicationAutoscalingDesiredCount:
     Type: Number
     Description: Application AutoScaling Group Desired Count
-    Default: {{ config_az_count | default(2) | int }}
+    Default: {{ az_count }}
   KeyName:
     Type: String
     Description: EC2 Key Pair for SSH Access
@@ -56,10 +57,10 @@ Resources:
       SecurityGroups:
         - Ref: "ApplicationLoadBalancerSecurityGroup"
       Subnets:
-{% for zone in range(0, config_az_count | default(2) | int) %}
+{% for zone in range(0, az_count) %}
         - Fn::ImportValue: "{{ vpc_prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
 {% endfor %}
-{% if config_az_count | default(2) | int > 1 %}
+{% if az_count > 1 %}
       CrossZone: "true"
 {% endif %}
       ConnectionSettings:
@@ -123,7 +124,7 @@ Resources:
         PauseTime: "PT15M"
     Properties:
       VPCZoneIdentifier:
-{% for zone in range(0, config_az_count | default(2) | int) %}
+{% for zone in range(0, az_count) %}
         - Fn::ImportValue: "{{ vpc_prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
 {% endfor %}
       LaunchConfigurationName: { "Ref" : "ApplicationAutoscalingLaunchConfiguration" }
@@ -173,7 +174,7 @@ Resources:
         Fn::ImportValue: "{{ vpc_prefix }}VpcId"
       GroupDescription: "Proxy Security Group"
       SecurityGroupIngress:
-{% for zone in range(0, config_az_count | default(2) | int) %}
+{% for zone in range(0, az_count) %}
         - IpProtocol: "tcp"
           FromPort: 22
           ToPort: 22
