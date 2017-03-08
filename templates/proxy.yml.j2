@@ -149,7 +149,7 @@ Resources:
                 AUTOSCALING_GROUP: "ApplicationAutoscaling"
                 AWS_DEFAULT_REGION: { "Ref": "AWS::Region" }
                 ECS_CLUSTER: { "Ref": "ApplicationCluster" }
-                DOCKER_NETWORK_MODE: "{{ config_proxy_network_mode | default('bridge') }}"
+                DOCKER_NETWORK_MODE: "{{ config_proxy_network_mode | default('host') }}"
               cwd: "/home/ec2-user/"
     Properties:
       ImageId: { "Ref": "ApplicationImageId" }
@@ -248,7 +248,7 @@ Resources:
   ApplicationTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
-      NetworkMode: "{{ config_proxy_network_mode | default('bridge') }}"
+      NetworkMode: "{{ config_proxy_network_mode | default('host') }}"
       ContainerDefinitions:
       - Name: squid
         Image:
@@ -263,7 +263,7 @@ Resources:
             awslogs-stream-prefix: docker
         PortMappings:
           - ContainerPort: 3128
-{% if config_proxy_network_mode | default('bridge') == 'bridge' %}
+{% if config_proxy_network_mode | default('host') == 'bridge' %}
             HostPort: 3128
 {% endif %}
             Protocol: tcp
