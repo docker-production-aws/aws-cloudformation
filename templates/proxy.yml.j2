@@ -304,42 +304,42 @@ Resources:
         - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
   DmesgLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Retain') }}"
+    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/dmesg
       RetentionInDays: {{ config_log_retention | default(30) | int }}
   DockerLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Retain') }}"
+    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/docker
       RetentionInDays: {{ config_log_retention | default(30) | int }}
   EcsAgentLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Retain') }}"
+    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/ecs/ecs-agent
       RetentionInDays: {{ config_log_retention | default(30) | int }}
   EcsInitLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Retain') }}"
+    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/ecs/ecs-init
       RetentionInDays: {{ config_log_retention | default(30) | int }}
   MessagesLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Retain') }}"
+    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/messages
       RetentionInDays: {{ config_log_retention | default(30) | int }}
   ProxyServiceLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Retain') }}"
+    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
     Properties:
       LogGroupName:
         Fn::Sub: ${AWS::StackName}/ecs/ProxyService/squid
