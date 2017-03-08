@@ -260,7 +260,7 @@ Resources:
             awslogs-group: 
               Fn::Sub: ${AWS::StackName}/ecs/ProxyService/squid
             awslogs-region: { "Ref": "AWS::Region" }
-            awslogs-prefix: docker
+            awslogs-stream-prefix: docker
         PortMappings:
           - ContainerPort: 3128
 {% if config_proxy_network_mode | default('bridge') == 'bridge' %}
