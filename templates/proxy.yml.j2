@@ -346,7 +346,7 @@ Resources:
       RetentionInDays: {{ config_log_retention | default(30) | int }}
    
 Outputs:
-  ProxyURL:
+  ProxyUrl:
     Description: "Squid Proxy URL"
     Value:
       Fn::Join: ["", [
@@ -355,7 +355,7 @@ Outputs:
         ":3128"
       ] ]
     Export:
-      Name: "{{ vpc_prefix }}ProxyURL"
+      Name: "{{ vpc_prefix }}ProxyUrl"
   ProxySecurityGroup:
     Description: "Squid Proxy Security Group"
     Value:
