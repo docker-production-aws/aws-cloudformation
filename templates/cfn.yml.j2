@@ -112,7 +112,7 @@ Outputs:
   CfnTemplatesBucketName:
     Description: "CloudFormation Templates Bucket Name"
     Value:
-      Fn::Sub: "${CfnTemplatesBucket.DomainName}"
+      Ref: CfnTemplatesBucket
     Export:
       Name: "CfnTemplatesBucket"
   CfnTemplatesBucketURL:
@@ -135,8 +135,8 @@ Outputs:
       Name: "CfnMasterKeyArn"
   CfnLambdaBucketName:
     Description: "CloudFormation Lambda Bucket Name"
-    Value: 
-      Fn::Sub: "${CfnLambdaBucket.DomainName}"
+    Value:
+      Ref: CfnLambdaBucket 
     Export:
       Name: "CfnLambdaBucket"
   CfnLambdaBucketURL:
