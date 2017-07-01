@@ -12,6 +12,7 @@
         template: "{{ cf_stack_template_path | default(omit) }}"
         template_url: "{{ cf_s3_template_url | default(omit) }}"
         template_parameters: "{{ cf_stack_inputs | default({}) }}"
+        disable_rollback: "{{ cf_disable_rollback | default(false) | bool }}"
         tags: "{{ cf_stack_tags | default({}) }}"
       register: cf_stack_result
   tags:
