@@ -253,7 +253,7 @@ Resources:
       - Name: squid
         Image:
           Fn::Sub: ${ProxyImage}:${ProxyImageTag}
-        Memory: 995
+        MemoryReservation: 500
         LogConfiguration:
           LogDriver: awslogs
           Options:
