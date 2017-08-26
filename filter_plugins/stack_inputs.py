@@ -16,7 +16,7 @@ def stack_inputs(inputs, environment, vars={}, prefix='config_'):
   for key,value in inputs.items():
     try:
       snake = prefix + snake_case(key)
-      result[key] = vars['hostvars'][environment].get(snake) or value['Default']
+      result[key] = str(vars['hostvars'][environment].get(snake) or value['Default'])
     except KeyError as e:
       raise KeyError("Missing %s variable for %s input.  Please define this variable or specify a 'Default' property for the input." % (snake,key))
   return result
