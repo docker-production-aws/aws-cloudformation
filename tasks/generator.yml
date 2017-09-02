@@ -37,6 +37,7 @@
         cf_stack_config:
           Parameters: "{{ cf_stack_inputs | default({}) }}"
           StackPolicy: "{{ cf_stack_policy | default(cf_default_stack_policy) }}"
+          Tags: "{{ cf_stack_tags | default({}) }}"
     - name: generate stack config
       copy: content={{ cf_stack_config | to_json }} dest={{ cf_stack_config_json }}
       changed_when: False
