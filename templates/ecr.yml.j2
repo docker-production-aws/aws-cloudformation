@@ -4,22 +4,34 @@ Description: ECR Repositories
 
 Resources:
 {% for repo_name, repo_config in config_ecr_repos.items() %}
+{% set rw_accounts = repo_config.get('rw_accounts') %}
+{% set ro_accounts = repo_config.get('ro_accounts') %}
+{% set rw_services = repo_config.get('rw_services') %}
+{% set ro_services = repo_config.get('ro_services') %}
   {{ repo_name | regex_replace('[^a-zA-Z0-9]', ' ') | title | regex_replace('\s', '') }}:
     Type: "AWS::ECR::Repository"
     Properties:
       RepositoryName: "{{ repo_name }}"
-{% if repo_config.get('rw_accounts') or repo_config.get('ro_accounts') %}
+{% if rw_accounts or ro_accounts or rw_services or ro_services %}
       RepositoryPolicyText:
         Version: "2008-10-17"
         Statement:
-{% if repo_config.get('rw_accounts') %}
+{% if rw_accounts or rw_services %}
         - Sid: AllowPushPull
           Effect: Allow
           Principal:
+{% if rw_accounts %}
             AWS:
-{% for account in repo_config.get('rw_accounts') %}
+{% for account in rw_accounts %}
             - "arn:aws:iam::{{ account }}:root"
 {% endfor %}
+{% endif %}
+{% if rw_services %}
+            Service:
+{% for service in rw_services %}
+            - "{{ service }}"
+{% endfor %}
+{% endif %}
           Action:
           - "ecr:GetDownloadUrlForLayer"
           - "ecr:BatchGetImage"
@@ -28,19 +40,33 @@ Resources:
           - "ecr:InitiateLayerUpload"
           - "ecr:UploadLayerPart"
           - "ecr:CompleteLayerUpload"
+          - "ecr:DescribeImages"
+          - "ecr:ListImages"
+          - "ecr:DescribeRepositories"
 {% endif %}
-{% if repo_config.get('ro_accounts') %}
+{% if ro_accounts or ro_services %}
         - Sid: AllowPull
           Effect: Allow
           Principal:
+{% if ro_accounts %}
             AWS:
-{% for account in repo_config.get('ro_accounts') %}
+{% for account in ro_accounts %}
             - "arn:aws:iam::{{ account }}:root"
 {% endfor %}
+{% endif %}
+{% if ro_services %}
+            Service:
+{% for service in ro_services %}
+            - "{{ service }}"
+{% endfor %}
+{% endif %}
           Action:
           - "ecr:GetDownloadUrlForLayer"
           - "ecr:BatchGetImage"
           - "ecr:BatchCheckLayerAvailability"
+          - "ecr:DescribeImages"
+          - "ecr:ListImages"
+          - "ecr:DescribeRepositories"
 {% endif %}
 {% endif %}
 {% endfor %}
