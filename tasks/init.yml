@@ -15,13 +15,6 @@
       cf_stack_policy: "{{ Stack.Policy | default(cf_default_stack_policy) }}"
       cf_stack_tags: "{{ Stack.Tags | default({}) }}"
       cf_stack_template: "{{ Stack.Template | default('./templates/stack.yml.j2') }}"
-      cf_stack_overrides: "{{ {
-        'Parameters': Stack.Parameters | default({}),
-        'Resources': Stack.Resources | default({}),
-        'Mappings': Stack.Mappings | default({}),
-        'Outputs': Stack.Outputs | default({}),
-        'Conditions': Stack.Conditions | default({})
-      } }}"
       cf_stack_globals: "{{ vars['hostvars'][env] | dotted_dict(paths=['AWS::']) }}"
       cf_job_path: "{{ Stack.Path | default('./build') }}"
       cf_delete_stack: "{{ Stack.Delete | default(False) | bool }}"

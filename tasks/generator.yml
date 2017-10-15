@@ -23,6 +23,16 @@
       set_fact:
         Stack: "{{ Stack | combine({ 'Resources': Stack.Resources | dict_override(cf_stack_globals)}, recursive=True) }}"
         cf_stack_template_vars: "{{ cf_stack_template_vars | combine({ 'Resources':cf_stack_template_vars.Resources | dict_override(cf_stack_globals)}, recursive=True) }}"
+    - name: create stack overrides
+      set_fact:
+        cf_stack_overrides: "{{ {
+          'Description': Stack.Description | default({}),
+          'Parameters': Stack.Parameters | default({}),
+          'Resources': Stack.Resources | default({}),
+          'Mappings': Stack.Mappings | default({}),
+          'Outputs': Stack.Outputs | default({}),
+          'Conditions': Stack.Conditions | default({})
+        } }}"
     - name: apply stack overrides
       set_fact:
         cf_stack_template_vars: "{{ cf_stack_template_vars | combine(cf_stack_overrides, recursive=True) }}"
