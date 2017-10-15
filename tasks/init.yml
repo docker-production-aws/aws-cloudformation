@@ -16,6 +16,7 @@
       cf_stack_tags: "{{ Stack.Tags | default({}) }}"
       cf_stack_template: "{{ Stack.Template | default('./templates/stack.yml.j2') }}"
       cf_stack_overrides: "{{ {
+        'Description': Stack.Description | default({}),
         'Parameters': Stack.Parameters | default({}),
         'Resources': Stack.Resources | default({}),
         'Mappings': Stack.Mappings | default({}),
