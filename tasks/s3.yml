@@ -18,7 +18,7 @@
 
 - block:
   - name: upload template to S3
-    s3:
+    aws_s3:
       mode: put
       bucket: "{{ cf_s3_bucket }}"
       object: "{{ cf_stack_name }}/{{ current_timestamp }}/stack.json"

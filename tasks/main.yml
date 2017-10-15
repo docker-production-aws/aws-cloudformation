@@ -1,21 +1,21 @@
 ---
 - block:
-    - include: init.yml
+    - import_tasks: init.yml
 
 - block:
-    - include: disable_policy.yml
+    - import_tasks: disable_policy.yml
   when: cf_disable_stack_policy
 
 - block:
-    - include: generator.yml
-    - include: s3.yml
+    - import_tasks: generator.yml
+    - import_tasks: s3.yml
       when: cf_upload_s3
-    - include: cloudformation.yml
+    - import_tasks: cloudformation.yml
   always:
-    - include: enable_policy.yml
+    - import_tasks: enable_policy.yml
       when: cf_disable_stack_policy
   when: not cf_delete_stack
 
 - block:
-    - include: delete.yml
+    - import_tasks: delete.yml
   when: cf_delete_stack
