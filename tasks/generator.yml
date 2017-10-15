@@ -13,7 +13,7 @@
         dest: "{{ cf_stack_template_yaml }}"
       changed_when: False
     - name: generate stack policy
-      copy: content={{ cf_stack_policy | default(cf_default_stack_policy) | to_json }} dest={{ cf_stack_policy_json }}
+      copy: content={{ cf_stack_policy | to_json }} dest={{ cf_stack_policy_json }}
       changed_when: False
     - name: generate compact JSON template
       copy: content={{ lookup('file', cf_stack_template_yaml) | from_yaml | to_json }} dest={{ cf_stack_template_temp_json }}
@@ -30,14 +30,13 @@
         name: Stack
     - name: set stack inputs
       set_fact:
-        cf_stack_inputs: "{{ Stack.Parameters | default({}) | stack_inputs(env, vars, prefix=cf_config_prefix) }}"
-      when: cf_stack_inputs is not defined
+        cf_stack_inputs: "{{ cf_stack_inputs | default(Stack.Parameters | default({}) | stack_inputs(Stack.Inputs | default({}))) }}"
     - name: set stack config
       set_fact:
         cf_stack_config:
-          Parameters: "{{ cf_stack_inputs | default({}) }}"
-          StackPolicy: "{{ cf_stack_policy | default(cf_default_stack_policy) }}"
-          Tags: "{{ cf_stack_tags | default({}) }}"
+          Parameters: "{{ cf_stack_inputs }}"
+          StackPolicy: "{{ cf_stack_policy }}"
+          Tags: "{{ cf_stack_tags }}"
     - name: generate stack config
       copy: content={{ cf_stack_config | to_json }} dest={{ cf_stack_config_json }}
       changed_when: False

@@ -1,0 +1,43 @@
+---
+- block:
+  - name: create stack variables
+    set_fact:
+      Stack: "{{ Stack | default({}) | combine((vars['hostvars'][env] | dotted_dict(paths=['Stack.'])).get('Stack') or {}, recursive=True) }}"
+      Config: "{{ Stack | default({}) | combine((vars['hostvars'][env] | dotted_dict(paths=['Config.'])).get('Config') or {}, recursive=True) }}"
+
+  - name: create stack facts
+    set_fact:
+      cf_stack_name: "{{ Stack.Name }}"
+      cf_stack_policy: "{{ Stack.Policy | default(cf_default_stack_policy) }}"
+      cf_stack_tags: "{{ Stack.Tags | default({}) }}"
+      cf_stack_template: "{{ Stack.Template | default('./templates/stack.yml.j2') }}"
+      cf_stack_overrides: "{{ {
+        'Parameters': Stack.Parameters | default({}),
+        'Resources': Stack.Resources | default({}),
+        'Mappings': Stack.Mappings | default({}),
+        'Outputs': Stack.Outputs | default({}),
+        'Conditions': Stack.Conditions | default({})
+      } }}"
+      cf_stack_globals: "{{ vars['hostvars'][env] | dotted_dict(paths=['AWS::']) }}"
+      cf_job_path: "{{ Stack.Path | default('./build') }}"
+      cf_delete_stack: "{{ Stack.Delete | default(False) | bool }}"
+      cf_disable_stack_policy: "{{ Stack.DisablePolicy | default(False) | bool }}"
+      cf_disable_rollback: "{{ Stack.DisableRollback | default(False) | bool }}"
+      cf_upload_s3: "{{ Stack.Upload | default(False) | bool }}"
+      debug: "{{ debug | default(False) | bool }}"
+      
+  - name: create timestamp fact
+    set_fact:
+      current_timestamp: "{{ (ansible_date_time.date + ansible_date_time.time) | regex_replace('[^\\d]','') }}"
+
+  - name: create build folder fact
+    set_fact:
+      cf_build_folder: "{{ cf_build_folder | default(cf_job_path + '/' + current_timestamp) }}"
+
+  - name: create build folder
+    file:
+      path: "{{ cf_build_folder }}"
+      state: directory
+    changed_when: False
+  tags:
+    - generate

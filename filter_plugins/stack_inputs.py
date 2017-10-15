@@ -7,16 +7,11 @@ class FilterModule(object):
         'stack_inputs': stack_inputs
     }
 
-def snake_case(text):
-  str1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
-  return re.sub('([a-z0-9])([A-Z])', r'\1_\2', str1).lower()
-
-def stack_inputs(inputs, environment, vars={}, prefix='config_'):
+def stack_inputs(inputs, config):
   result = {}
   for key,value in inputs.items():
     try:
-      snake = prefix + snake_case(key)
-      result[key] = str(vars['hostvars'][environment].get(snake) or value['Default'])
+      result[key] = str(config.get(key) or value['Default'])
     except KeyError as e:
-      raise KeyError("Missing %s variable for %s input.  Please define this variable or specify a 'Default' property for the input." % (snake,key))
+      raise KeyError("Missing variable for %s input.  Please define this variable or specify a 'Default' property for the input." % key)
   return result
