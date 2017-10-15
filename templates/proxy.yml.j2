@@ -1,5 +1,3 @@
-{% set vpc_prefix = config_vpc_name | title %}
-{% set az_count = config_az_count | default(2) | int %}
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: Squid Forward Proxy
@@ -14,7 +12,6 @@ Parameters:
   ApplicationAutoscalingDesiredCount:
     Type: Number
     Description: Application AutoScaling Group Desired Count
-    Default: {{ az_count }}
   KeyName:
     Type: String
     Description: EC2 Key Pair for SSH Access
@@ -36,15 +33,59 @@ Parameters:
     Type: String
     Description: Comma separated list of domains to whitelist
     Default: ""
+  ProxyNetworkMode:
+    Type: String
+    Description: Docker networking mode
+    Default: host
+    AllowedValues:
+      - host
+      - bridge
+  VpcName:
+    Type: String
+    Description: VPC Name
+  AzCount:
+    Type: Number
+    Description: AZ Count
+    AllowedValues:
+      - 1
+      - 2
+  LogRetention:
+    Type: Number
+    Description: Log retention in days
+    Default: 7
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+
+Conditions:
+  SingleAzCondition:
+    Fn::Equals:
+      - Ref: AzCount
+      - 1
+  DualAzCondition:
+    Fn::Equals:
+      - Ref: AzCount
+      - 2
+  HostNetworkModeCondition:
+    Fn::Equals:
+      - Ref: ProxyNetworkMode
+      - host
+
 Resources:
   ProxyDnsRecord:
     Type: "AWS::Route53::RecordSet"
     Properties:
       Name:
-        Fn::Join: ["", [ "proxy.", "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain" ] ]
+        Fn::Join:
+          - ""
+          - - proxy.
+            - Fn::ImportValue:
+                Fn::Sub: ${VpcName}VpcDomain
       TTL: "300"
       HostedZoneName:
-        Fn::Join: ["", [ "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain", "." ] ]
+        Fn::Join:
+          - ""
+          - - Fn::ImportValue:
+                Fn::Sub: ${VpcName}VpcDomain
+            - "."
       Type: "CNAME"
       Comment: 
         Fn::Sub: "${AWS::StackName} Forward Proxy"
@@ -57,12 +98,18 @@ Resources:
       SecurityGroups:
         - Ref: "ApplicationLoadBalancerSecurityGroup"
       Subnets:
-{% for zone in range(0, az_count) %}
-        - Fn::ImportValue: "{{ vpc_prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
-{% endfor %}
-{% if az_count > 1 %}
-      CrossZone: "true"
-{% endif %}
+        - Fn::ImportValue:
+            Fn::Sub: ${VpcName}PublicSubnetA
+        - Fn::If:
+          - DualAzCondition
+          - Fn::ImportValue:
+              Fn::Sub: ${VpcName}PublicSubnetB
+          - Ref: AWS::NoValue
+      CrossZone:
+        Fn::If:
+          - DualAzCondition
+          - "true"
+          - Ref: AWS::NoValue
       ConnectionSettings:
         IdleTimeout: 120
       ConnectionDrainingPolicy:
@@ -80,14 +127,16 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       VpcId:
-        Fn::ImportValue: "{{ vpc_prefix }}VpcId"
+        Fn::ImportValue:
+          Fn::Sub: ${VpcName}VpcId
       GroupDescription: "Proxy Load Balancer Security Group"
       SecurityGroupIngress:
         - IpProtocol: "tcp"
           FromPort: 3128
           ToPort: 3128
           CidrIp:
-            Fn::ImportValue: "{{ vpc_prefix }}VpcCidr"
+            Fn::ImportValue:
+              Fn::Sub: ${VpcName}VpcCidr
   ApplicationLoadBalancerToAutoscalingIngressTCP3128:
     Type: "AWS::EC2::SecurityGroupIngress"
     Properties:
@@ -124,9 +173,13 @@ Resources:
         PauseTime: "PT15M"
     Properties:
       VPCZoneIdentifier:
-{% for zone in range(0, az_count) %}
-        - Fn::ImportValue: "{{ vpc_prefix }}PublicSubnet{{ 'ABC'[loop.index0] }}"
-{% endfor %}
+        - Fn::ImportValue:
+            Fn::Sub: ${VpcName}PublicSubnetA
+        - Fn::If:
+          - DualAzCondition
+          - Fn::ImportValue:
+              Fn::Sub: ${VpcName}PublicSubnetB
+          - Ref: AWS::NoValue
       LaunchConfigurationName: { "Ref" : "ApplicationAutoscalingLaunchConfiguration" }
       MinSize: "0"
       MaxSize: "4"
@@ -145,12 +198,16 @@ Resources:
             10_first_run:
               command: "sh firstrun.sh"
               env:
-                STACK_NAME: { "Ref": "AWS::StackName" }
-                AUTOSCALING_GROUP: "ApplicationAutoscaling"
-                AWS_DEFAULT_REGION: { "Ref": "AWS::Region" }
-                ECS_CLUSTER: { "Ref": "ApplicationCluster" }
-                DOCKER_NETWORK_MODE: "{{ config_proxy_network_mode | default('host') }}"
-              cwd: "/home/ec2-user/"
+                STACK_NAME:
+                  Ref: AWS::StackName
+                AUTOSCALING_GROUP: ApplicationAutoscaling
+                AWS_DEFAULT_REGION:
+                  Ref: AWS::Region
+                ECS_CLUSTER:
+                  Ref: ApplicationCluster
+                DOCKER_NETWORK_MODE:
+                  Ref: ProxyNetworkMode
+              cwd: /home/ec2-user/
     Properties:
       ImageId: { "Ref": "ApplicationImageId" }
       InstanceType: { "Ref": "ApplicationInstanceType" }
@@ -161,26 +218,34 @@ Resources:
         - Ref: "ApplicationAutoscalingSecurityGroup"
       UserData: 
         Fn::Base64:
-          Fn::Join: ["\n", [
-            "#!/bin/bash",
-            "set -e",
-            "Fn::Sub": "/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ApplicationAutoscalingLaunchConfiguration --region ${AWS::Region}",
-            "Fn::Sub": "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ApplicationAutoscaling --region ${AWS::Region}"
-          ] ]
+          Fn::Sub: |
+            #!/bin/bash
+            set -e
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ApplicationAutoscalingLaunchConfiguration --region ${AWS::Region}
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ApplicationAutoscaling --region ${AWS::Region}
   ApplicationAutoscalingSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       VpcId:
-        Fn::ImportValue: "{{ vpc_prefix }}VpcId"
+        Fn::ImportValue:
+          Fn::Sub: ${VpcName}VpcId
       GroupDescription: "Proxy Security Group"
       SecurityGroupIngress:
-{% for zone in range(0, az_count) %}
-        - IpProtocol: "tcp"
+        - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp:
-            Fn::ImportValue: "{{ vpc_prefix }}ManagementSubnet{{ 'ABC'[loop.index0] }}Cidr"
-{% endfor %}
+            Fn::ImportValue:
+              Fn::Sub: ${VpcName}ManagementSubnetACidr
+        - Fn::If:
+          - DualAzCondition
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp:
+              Fn::ImportValue:
+                Fn::Sub: ${VpcName}ManagementSubnetACidr
+          - Ref: AWS::NoValue
       SecurityGroupEgress:
         - IpProtocol: "tcp"
           FromPort: 80
@@ -194,9 +259,8 @@ Resources:
           FromPort: 53
           ToPort: 53
           CidrIp:
-            Fn::Join: ["", [
-              "Fn::ImportValue": "{{ vpc_prefix }}VpcDnsServer", "/32"
-            ] ]
+            Fn::ImportValue:
+              Fn::Sub: ${VpcName}VpcDnsServer
         - IpProtocol: "udp"
           FromPort: 123
           ToPort: 123
@@ -214,7 +278,18 @@ Resources:
       Path: "/"
       ManagedPolicyArns: []
       Policies:
-        - {{ cf_cloudwatch_ec2_logs_policy | to_json }}
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:DescribeLogStreams"
+                Resource:
+                  Fn::Sub: "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AWS::StackName}*"
         - PolicyName: "EC2ContainerInstancePolicy"
           PolicyDocument:
             Statement:
@@ -248,7 +323,8 @@ Resources:
   ApplicationTaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
-      NetworkMode: "{{ config_proxy_network_mode | default('host') }}"
+      NetworkMode:
+        Ref: ProxyNetworkMode
       ContainerDefinitions:
       - Name: squid
         Image:
@@ -263,9 +339,10 @@ Resources:
             awslogs-stream-prefix: docker
         PortMappings:
           - ContainerPort: 3128
-{% if config_proxy_network_mode | default('host') == 'bridge' %}
-            HostPort: 3128
-{% endif %}
+            Fn::If:
+              - HostNetworkModeCondition
+              - HostPort: 3128
+              - Ref: AWS::NoValue
             Protocol: tcp
         Environment:
         - Name: NO_WHITELIST
@@ -304,69 +381,81 @@ Resources:
         - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
   DmesgLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/dmesg
-      RetentionInDays: {{ config_log_retention | default(30) | int }}
+      RetentionInDays:
+        Ref: LogRetention
   DockerLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/docker
-      RetentionInDays: {{ config_log_retention | default(30) | int }}
+      RetentionInDays:
+        Ref: LogRetention
   EcsAgentLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/ecs/ecs-agent
-      RetentionInDays: {{ config_log_retention | default(30) | int }}
+      RetentionInDays:
+        Ref: LogRetention
   EcsInitLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/ecs/ecs-init
-      RetentionInDays: {{ config_log_retention | default(30) | int }}
+      RetentionInDays:
+        Ref: LogRetention
   MessagesLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: 
         Fn::Sub: ${AWS::StackName}/ec2/ApplicationAutoscaling/var/log/messages
-      RetentionInDays: {{ config_log_retention | default(30) | int }}
+      RetentionInDays:
+        Ref: LogRetention
   ProxyServiceLogGroup:
     Type: "AWS::Logs::LogGroup"
-    DeletionPolicy: "{{ config_log_deletion_policy | default('Delete') }}"
+    DeletionPolicy: Delete
     Properties:
       LogGroupName:
         Fn::Sub: ${AWS::StackName}/ecs/ProxyService/squid
-      RetentionInDays: {{ config_log_retention | default(30) | int }}
+      RetentionInDays:
+        Ref: LogRetention
    
 Outputs:
   ProxyHost:
     Description: "Squid Proxy Host"
     Value:
-      Fn::Join: ["", [
-        "proxy.", "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain",
-      ] ]
+      Fn::Join:
+        - ""
+        - - proxy.
+          - Fn::ImportValue:
+              Fn::Sub: ${VpcName}VpcDomain
     Export:
-      Name: "{{ vpc_prefix }}ProxyHost"
+      Name:
+        Fn::Sub: ${VpcName}ProxyHost
   ProxyUrl:
     Description: "Squid Proxy URL"
     Value:
-      Fn::Join: ["", [
-        "http://proxy.",
-        "Fn::ImportValue": "{{ vpc_prefix }}VpcDomain",
-        ":3128"
-      ] ]
+      Fn::Join:
+        - ""
+        - http://proxy.
+        - Fn::ImportValue:
+             Fn::Sub: ${VpcName}VpcDomain
+        - :3128
     Export:
-      Name: "{{ vpc_prefix }}ProxyUrl"
+      Name:
+        Fn::Sub: ${VpcName}ProxyUrl
   ProxySecurityGroup:
     Description: "Squid Proxy Security Group"
     Value:
       Ref: ApplicationLoadBalancerSecurityGroup
     Export:
-      Name: "{{ vpc_prefix }}ProxySecurityGroup"
+      Name:
+        Fn::Sub: ${VpcName}ProxySecurityGroup
