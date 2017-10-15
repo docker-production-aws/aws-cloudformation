@@ -335,12 +335,13 @@ Resources:
             awslogs-region: { "Ref": "AWS::Region" }
             awslogs-stream-prefix: docker
         PortMappings:
-          - ContainerPort: 3128
-            Fn::If:
-              - HostNetworkModeCondition
-              - HostPort: 3128
-              - Ref: AWS::NoValue
-            Protocol: tcp
+            - ContainerPort: 3128
+              HostPort:
+                Fn::If:
+                  - HostNetworkModeCondition
+                  - 3128
+                  - 0
+              Protocol: tcp
         Environment:
         - Name: NO_WHITELIST
           Value: { "Ref": "ProxyDisableWhitelist" }
