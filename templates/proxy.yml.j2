@@ -445,10 +445,10 @@ Outputs:
     Value:
       Fn::Join:
         - ""
-        - http://proxy.
-        - Fn::ImportValue:
-             Fn::Sub: ${VpcName}VpcDomain
-        - :3128
+        - - http://proxy.
+          - Fn::ImportValue:
+               Fn::Sub: ${VpcName}VpcDomain
+          - :3128
     Export:
       Name:
         Fn::Sub: ${VpcName}ProxyUrl
