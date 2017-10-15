@@ -30,6 +30,7 @@
       cf_disable_rollback: "{{ Stack.DisableRollback | default(False) | bool }}"
       cf_upload_s3: "{{ Stack.Upload | default(False) | bool }}"
       cf_build_folder: "{{ Stack.BuildFolder | default(cf_job_path + '/' + current_timestamp) }}"
+      cf_stack_role: "{{ Stack.Role | default(None) }}"
       debug: "{{ debug | default(False) | bool }}"
       
   - name: create build folder
