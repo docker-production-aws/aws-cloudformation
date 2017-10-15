@@ -256,8 +256,11 @@ Resources:
           FromPort: 53
           ToPort: 53
           CidrIp:
-            Fn::ImportValue:
-              Fn::Sub: ${VpcName}VpcDnsServer
+            Fn::Join:
+              - ""
+              - - Fn::ImportValue:
+                    Fn::Sub: ${VpcName}VpcDnsServer
+                - /32
         - IpProtocol: "udp"
           FromPort: 123
           ToPort: 123
