@@ -5,6 +5,6 @@
         stack_name: "{{ cf_stack_name }}"
         state: absent
       failed_when: False
-  when: cf_delete_stack | default(False) | bool
+  when: cf_delete_stack
   tags:
     - delete

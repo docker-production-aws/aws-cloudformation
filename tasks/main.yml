@@ -1,22 +1,21 @@
 ---
 - block:
     - include: init.yml
-    
-- block:
-    - include: disable_policy.yml
-  when: cf_disable_stack_policy | default(False) | bool
 
 - block:
-    - include: build.yml
+    - include: disable_policy.yml
+  when: cf_disable_stack_policy
+
+- block:
     - include: generator.yml
     - include: s3.yml
-      when: cf_upload_s3 | default(False) | bool
+      when: cf_upload_s3
     - include: cloudformation.yml
   always:
     - include: enable_policy.yml
-      when: cf_disable_stack_policy is defined
-  when: not cf_delete_stack | default(False) | bool
+      when: cf_disable_stack_policy
+  when: not cf_delete_stack
 
 - block:
     - include: delete.yml
-  when: cf_delete_stack | default(False) | bool
+  when: cf_delete_stack
