@@ -12,6 +12,9 @@ Parameters:
   ApplicationDesiredCount:
     Type: Number
     Description: Application Desired Count
+    AllowedValues:
+      - 1
+      - 2
   KeyName:
     Type: String
     Description: EC2 Key Pair for SSH Access
@@ -43,12 +46,6 @@ Parameters:
   VpcName:
     Type: String
     Description: VPC Name
-  AzCount:
-    Type: Number
-    Description: AZ Count
-    AllowedValues:
-      - 1
-      - 2
   LogRetention:
     Type: Number
     Description: Log retention in days
@@ -58,11 +55,11 @@ Parameters:
 Conditions:
   SingleAzCondition:
     Fn::Equals:
-      - Ref: AzCount
+      - Ref: ApplicationDesiredCount
       - 1
   DualAzCondition:
     Fn::Equals:
-      - Ref: AzCount
+      - Ref: ApplicationDesiredCount
       - 2
   HostNetworkModeCondition:
     Fn::Equals:
@@ -163,11 +160,11 @@ Resources:
       - MessagesLogGroup
     CreationPolicy:
       ResourceSignal:
-        Count: { "Ref": "ApplicationAutoscalingDesiredCount"}
+        Count: { "Ref": "ApplicationDesiredCount"}
         Timeout: "PT15M"
     UpdatePolicy:
       AutoScalingRollingUpdate:
-        MinInstancesInService: { "Ref": "ApplicationAutoscalingDesiredCount"}
+        MinInstancesInService: { "Ref": "ApplicationDesiredCount"}
         MinSuccessfulInstancesPercent: "100"
         WaitOnResourceSignals: "true"
         PauseTime: "PT15M"
@@ -183,7 +180,7 @@ Resources:
       LaunchConfigurationName: { "Ref" : "ApplicationAutoscalingLaunchConfiguration" }
       MinSize: "0"
       MaxSize: "4"
-      DesiredCapacity: { "Ref": "ApplicationAutoscalingDesiredCount" }
+      DesiredCapacity: { "Ref": "ApplicationDesiredCount" }
       Tags:
         - Key: Name
           Value:
@@ -357,7 +354,7 @@ Resources:
     Properties:
       Cluster: { "Ref": "ApplicationCluster" }
       TaskDefinition: { "Ref": "ApplicationTaskDefinition" }
-      DesiredCount: { "Ref": "ApplicationAutoscalingDesiredCount"}
+      DesiredCount: { "Ref": "ApplicationDesiredCount"}
       DeploymentConfiguration:
           MinimumHealthyPercent: 50
           MaximumPercent: 200
