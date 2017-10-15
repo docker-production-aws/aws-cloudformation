@@ -24,15 +24,12 @@
       cf_disable_stack_policy: "{{ Stack.DisablePolicy | default(False) | bool }}"
       cf_disable_rollback: "{{ Stack.DisableRollback | default(False) | bool }}"
       cf_upload_s3: "{{ Stack.Upload | default(False) | bool }}"
+      cf_build_folder: "{{ Stack.BuildFolder | default(cf_job_path + '/' + current_timestamp) }}"
       debug: "{{ debug | default(False) | bool }}"
       
   - name: create timestamp fact
     set_fact:
       current_timestamp: "{{ (ansible_date_time.date + ansible_date_time.time) | regex_replace('[^\\d]','') }}"
-
-  - name: create build folder fact
-    set_fact:
-      cf_build_folder: "{{ cf_build_folder | default(cf_job_path + '/' + current_timestamp) }}"
 
   - name: create build folder
     file:
