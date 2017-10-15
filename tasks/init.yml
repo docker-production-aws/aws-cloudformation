@@ -5,6 +5,10 @@
       Stack: "{{ Stack | default({}) | combine((vars['hostvars'][env] | dotted_dict(paths=['Stack.'])).get('Stack') or {}, recursive=True) }}"
       Config: "{{ Stack | default({}) | combine((vars['hostvars'][env] | dotted_dict(paths=['Config.'])).get('Config') or {}, recursive=True) }}"
 
+  - name: create timestamp fact
+    set_fact:
+      current_timestamp: "{{ (ansible_date_time.date + ansible_date_time.time) | regex_replace('[^\\d]','') }}"
+
   - name: create stack facts
     set_fact:
       cf_stack_name: "{{ Stack.Name }}"
@@ -27,10 +31,6 @@
       cf_build_folder: "{{ Stack.BuildFolder | default(cf_job_path + '/' + current_timestamp) }}"
       debug: "{{ debug | default(False) | bool }}"
       
-  - name: create timestamp fact
-    set_fact:
-      current_timestamp: "{{ (ansible_date_time.date + ansible_date_time.time) | regex_replace('[^\\d]','') }}"
-
   - name: create build folder
     file:
       path: "{{ cf_build_folder }}"
