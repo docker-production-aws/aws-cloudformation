@@ -128,7 +128,7 @@ Resources:
   CfnMasterKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: cfn-master-key
+      AliasName: alias/cfn-master-key
       TargetKeyId:
         Ref: CfnMasterKey
 Outputs:
