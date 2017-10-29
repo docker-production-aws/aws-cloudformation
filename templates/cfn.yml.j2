@@ -6,20 +6,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: CloudFormation Resources
 
 Resources:
-  CfnServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: cfn-admin
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AdministratorAccess
   CfnTemplatesBucket:
     Type: "AWS::S3::Bucket"
     Properties:
