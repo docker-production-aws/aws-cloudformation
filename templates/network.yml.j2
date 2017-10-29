@@ -17,7 +17,7 @@ Resources:
     subnet_size=vpc_config.SubnetSize | default(24) | int,
     domain_name=vpc_config.DomainName | default(''),
     dns_servers=vpc_config.DnsServers | default([]),
-    ntp_servers=vpc_config.NtpSevers | default([]),
+    ntp_servers=vpc_config.NtpServers | default([]),
     private_domains=vpc_config.PrivateDomains | default([]),
     public_domains=vpc_config.PublicDomains | default([]))
 }}
@@ -35,7 +35,7 @@ Outputs:
     subnet_size=vpc_config.SubnetSize | default(24) | int,
     domain_name=vpc_config.DomainName | default(''),
     dns_servers=vpc_config.DnsServers | default([]),
-    ntp_servers=vpc_config.NtpSevers | default([]),
+    ntp_servers=vpc_config.NtpServers | default([]),
     private_domains=vpc_config.PrivateDomains | default([]),
     public_domains=vpc_config.PublicDomains | default([]))
 }}
