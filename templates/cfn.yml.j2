@@ -125,6 +125,12 @@ Resources:
             - "kms:Decrypt"
             - "kms:DescribeKey"
             Resource: "*"
+  CfnMasterKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: cfn-master-key
+      TargetKeyId:
+        Ref: CfnMasterKey
 Outputs:
   CfnTemplatesBucketName:
     Description: "CloudFormation Templates Bucket Name"
@@ -141,7 +147,7 @@ Outputs:
   CfnMasterKey:
     Description: "CloudFormation Master Key ID"
     Value: 
-      Fn::Sub: "${CfnMasterKey}"
+      Ref: "CfnMasterKey"
     Export:
       Name: "CfnMasterKey"
   CfnMasterKeyArn:
