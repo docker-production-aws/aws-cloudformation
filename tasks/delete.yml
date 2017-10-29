@@ -5,7 +5,6 @@
         stack_name: "{{ cf_stack_name }}"
         state: absent
         role_arn: "{{ cf_stack_role | default(omit) }}"
-      failed_when: False
   when: cf_delete_stack
   tags:
     - delete
