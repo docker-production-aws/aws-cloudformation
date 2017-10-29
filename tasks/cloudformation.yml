@@ -27,9 +27,9 @@
       changed_when: false
     - name: set stack facts
       set_fact:
-        cf_stack_facts: "{{ cloudformation[cf_stack_name] }}"
-    - name: cf_stack_facts variable
-      debug: msg={{ cf_stack_facts }}
-      when: debug | default(false) | bool
+        Stack: "{{ Stack | combine({ 'Facts': cloudformation[cf_stack_name] },recursive=True) }}"
+    - name: Stack.Facts variable
+      debug: msg={{ Stack.Facts }}
+      when: debug
   tags:
     - deploy
