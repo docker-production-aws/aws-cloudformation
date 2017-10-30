@@ -3,6 +3,9 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Squid Forward Proxy
 
 Parameters:
+  VpcName:
+    Type: String
+    Description: VPC Name
   ApplicationImageId:
     Type: String
     Description: Application Amazon Machine Image ID
@@ -15,6 +18,7 @@ Parameters:
     AllowedValues:
       - 1
       - 2
+    Default: 2
   KeyName:
     Type: String
     Description: EC2 Key Pair for SSH Access
@@ -43,9 +47,6 @@ Parameters:
     AllowedValues:
       - host
       - bridge
-  VpcName:
-    Type: String
-    Description: VPC Name
   LogRetention:
     Type: Number
     Description: Log retention in days
