@@ -22,6 +22,7 @@
       cf_disable_rollback: "{{ Stack.DisableRollback | default(False) | bool }}"
       cf_upload_s3: "{{ Stack.Upload | default(False) | bool }}"
       cf_stack_role: "{{ Stack.Role | default(None) }}"
+      cf_s3_bucket: "{{ Stack.Bucket | default(None) }}"
       debug: "{{ debug | default(False) | bool }}"
 
   - name: set build folder fact

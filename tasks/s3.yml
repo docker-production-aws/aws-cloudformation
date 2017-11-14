@@ -9,10 +9,10 @@
   - name: set aws account fact
     set_fact:
       cf_account_id: "{{ (cf_aws_identity.stdout | from_json).get('Account') }}"
-  - name: set s3 bucket fact for account id {{ cf_account_id }}
+  - name: set s3 bucket fact for account id
     set_fact:
       cf_s3_bucket: "{{ cf_account_id + '-cfn-templates' }}"
-  when: cf_s3_bucket is not defined
+  when: cf_s3_bucket is None
   tags:
     - generate
 
@@ -27,6 +27,6 @@
     register: cf_s3_result
   - name: set S3 url fact
     set_fact:
-      cf_s3_template_url: "{{ cf_s3_result.url }}"
+      Stack: "{{ Stack | combine({'Url':cf_s3_result.url},recursive=True) }}"
   tags:
     - generate
