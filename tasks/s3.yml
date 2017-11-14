@@ -12,7 +12,7 @@
   - name: set s3 bucket fact for account id
     set_fact:
       cf_s3_bucket: "{{ cf_account_id + '-cfn-templates' }}"
-  when: cf_s3_bucket is None
+  when: not cf_s3_bucket
   tags:
     - generate
 
@@ -28,5 +28,7 @@
   - name: set S3 url fact
     set_fact:
       Stack: "{{ Stack | combine({'Url':cf_s3_result.url},recursive=True) }}"
+  - name: S3 url
+    debug: msg={{ Stack.Url }}
   tags:
     - generate
