@@ -43,13 +43,7 @@
       copy: content={{ cf_stack_policy | to_json }} dest={{ cf_stack_policy_json }}
       changed_when: False
     - name: generate compact JSON template
-      copy: content={{ lookup('file', cf_stack_template_yaml) | from_yaml | to_json }} dest={{ cf_stack_template_temp_json }}
-      changed_when: False
-    - name: remove whitespace from compact JSON template
-      shell: cat {{ cf_stack_template_temp_json }} | jq -c '.' > {{ cf_stack_template_json }}
-      changed_when: False
-    - name: remove temp compact JSON template
-      file: path={{ cf_stack_template_temp_json }} state=absent
+      copy: content={{ lookup('file', cf_stack_template_yaml) | from_yaml | compact | string }} dest={{ cf_stack_template_json }}
       changed_when: False
     - name: set stack inputs
       set_fact:

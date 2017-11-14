@@ -6,12 +6,10 @@ This is an Ansible role for generating CloudFormation templates and deploying Cl
 
 - Python 2.7
 - PIP package manager (**easy_install pip**)
-- Ansible 2.2 or greater (**pip install ansible**)
-- Boto (**pip install boto**)
+- Ansible 2.4 or greater (**pip install ansible**)
 - Boto3 (**pip install boto3**)
 - Netaddr (**pip install netaddr**)
 - AWS CLI (**pip install awscli**) installed and configured
-- [jq](https://stedolan.github.io/jq/)
 
 ## Setup
 
