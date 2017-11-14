@@ -12,8 +12,35 @@
         src: "{{ cf_stack_template }}"
         dest: "{{ cf_stack_template_yaml }}"
       changed_when: False
+    - name: load generated template
+      include_vars:
+        file: "{{ cf_stack_template_yaml }}"
+        name: cf_stack_template_vars
+    - name: merge template into Stack variable
+      set_fact:
+        Stack: "{{ cf_stack_template_vars | combine(Stack, recursive=True) }}"
+    - name: merge stack globals
+      set_fact:
+        Stack: "{{ Stack | combine({ 'Resources': Stack.Resources | dict_override(cf_stack_globals)}, recursive=True) }}"
+        cf_stack_template_vars: "{{ cf_stack_template_vars | combine({ 'Resources':cf_stack_template_vars.Resources | dict_override(cf_stack_globals)}, recursive=True) }}"
+    - name: create stack overrides
+      set_fact:
+        cf_stack_overrides: "{{ {
+          'Description': Stack.Description | default({}),
+          'Parameters': Stack.Parameters | default({}),
+          'Resources': Stack.Resources | default({}),
+          'Mappings': Stack.Mappings | default({}),
+          'Outputs': Stack.Outputs | default({}),
+          'Conditions': Stack.Conditions | default({})
+        } }}"
+    - name: apply stack overrides
+      set_fact:
+        cf_stack_template_vars: "{{ cf_stack_template_vars | combine(cf_stack_overrides, recursive=True) }}"
+    - name: output stack
+      copy: content={{ cf_stack_template_vars | to_nice_yaml(indent=2) }} dest={{ cf_stack_template_yaml }}
+      changed_when: False
     - name: generate stack policy
-      copy: content={{ cf_stack_policy | default(cf_default_stack_policy) | to_json }} dest={{ cf_stack_policy_json }}
+      copy: content={{ cf_stack_policy | to_json }} dest={{ cf_stack_policy_json }}
       changed_when: False
     - name: generate compact JSON template
       copy: content={{ lookup('file', cf_stack_template_yaml) | from_yaml | to_json }} dest={{ cf_stack_template_temp_json }}
@@ -24,20 +51,15 @@
     - name: remove temp compact JSON template
       file: path={{ cf_stack_template_temp_json }} state=absent
       changed_when: False
-    - name: load generated template into Stack variable
-      include_vars:
-        file: "{{ cf_stack_template_json }}"
-        name: Stack
     - name: set stack inputs
       set_fact:
-        cf_stack_inputs: "{{ Stack.Parameters | default({}) | stack_inputs(env, vars, prefix=cf_config_prefix) }}"
-      when: cf_stack_inputs is not defined
+        cf_stack_inputs: "{{ cf_stack_inputs | default(Stack.Parameters | default({}) | stack_inputs(Stack.Inputs | default({}))) }}"
     - name: set stack config
       set_fact:
         cf_stack_config:
-          Parameters: "{{ cf_stack_inputs | default({}) }}"
-          StackPolicy: "{{ cf_stack_policy | default(cf_default_stack_policy) }}"
-          Tags: "{{ cf_stack_tags | default({}) }}"
+          Parameters: "{{ cf_stack_inputs }}"
+          StackPolicy: "{{ cf_stack_policy }}"
+          Tags: "{{ cf_stack_tags }}"
     - name: generate stack config
       copy: content={{ cf_stack_config | to_json }} dest={{ cf_stack_config_json }}
       changed_when: False

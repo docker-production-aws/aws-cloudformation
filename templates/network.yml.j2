@@ -1,4 +1,5 @@
 {% import 'macros/network.j2' as network with context %}
+{% set config_vpcs = Config.Vpcs %}
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: Core Network Resources
@@ -7,35 +8,35 @@ Resources:
 {# Networking Resources #}
 {% for vpc_name, vpc_config in config_vpcs.items() %}
 {{ network.resources(
-    vpc_name,
-    vpc_config.vpc_cidr,
-    vpc_config.vpc_domain,
-    public_subnets=vpc_config.public_subnets | default(['public']),
-    private_subnets=vpc_config.private_subnets | default(['medium','high','management']),
-    az_count=vpc_config.az_config | default(2) | int, 
-    subnet_size=vpc_config.subnet_size | default(24) | int,
-    domain_name=vpc_config.domain_name | default(''),
-    dns_servers=vpc_config.dns_servers | default([]),
-    ntp_servers=vpc_config.ntp_servers | default([]),
-    private_domains=vpc_config.private_domains | default([]),
-    public_domains=vpc_config.public_domains | default([]))
+    vpc_name | lower,
+    vpc_config.Cidr,
+    vpc_config.Domain,
+    public_subnets=vpc_config.PublicSubnets | default(['public']),
+    private_subnets=vpc_config.PrivateSubnets | default(['medium','high','management']),
+    az_count=vpc_config.AzCount | default(2) | int,
+    subnet_size=vpc_config.SubnetSize | default(24) | int,
+    domain_name=vpc_config.DomainName | default(''),
+    dns_servers=vpc_config.DnsServers | default([]),
+    ntp_servers=vpc_config.NtpServers | default([]),
+    private_domains=vpc_config.PrivateDomains | default([]),
+    public_domains=vpc_config.PublicDomains | default([]))
 }}
 {% endfor %}
 Outputs:
 {# Networking Outputs #}
 {% for vpc_name, vpc_config in config_vpcs.items() %}
 {{ network.outputs(
-    vpc_name,
-    vpc_config.vpc_cidr,
-    vpc_config.vpc_domain,
-    public_subnets=vpc_config.public_subnets | default(['public']),
-    private_subnets=vpc_config.private_subnets | default(['medium','high','management']),
-    az_count=vpc_config.az_config | default(2) | int, 
-    subnet_size=vpc_config.subnet_size | default(24) | int,
-    domain_name=vpc_config.domain_name | default(''),
-    dns_servers=vpc_config.dns_servers | default([]),
-    ntp_servers=vpc_config.ntp_servers | default([]),
-    private_domains=vpc_config.private_domains | default([]),
-    public_domains=vpc_config.public_domains | default([]))
+    vpc_name | lower,
+    vpc_config.Cidr,
+    vpc_config.Domain,
+    public_subnets=vpc_config.PublicSubnets | default(['public']),
+    private_subnets=vpc_config.PrivateSubnets | default(['medium','high','management']),
+    az_count=vpc_config.AzCount | default(2) | int,
+    subnet_size=vpc_config.SubnetSize | default(24) | int,
+    domain_name=vpc_config.DomainName | default(''),
+    dns_servers=vpc_config.DnsServers | default([]),
+    ntp_servers=vpc_config.NtpServers | default([]),
+    private_domains=vpc_config.PrivateDomains | default([]),
+    public_domains=vpc_config.PublicDomains | default([]))
 }}
 {% endfor %}

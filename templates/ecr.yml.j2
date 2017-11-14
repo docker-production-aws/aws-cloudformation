@@ -1,13 +1,14 @@
+{% set config_ecr_repos = Config.Repositories %}
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: ECR Repositories
 
 Resources:
 {% for repo_name, repo_config in config_ecr_repos.items() %}
-{% set rw_accounts = repo_config.get('rw_accounts') %}
-{% set ro_accounts = repo_config.get('ro_accounts') %}
-{% set rw_services = repo_config.get('rw_services') %}
-{% set ro_services = repo_config.get('ro_services') %}
+{% set rw_accounts = repo_config.get('ReadWriteAccounts') %}
+{% set ro_accounts = repo_config.get('ReadOnlyAccounts') %}
+{% set rw_services = repo_config.get('ReadWriteServices') %}
+{% set ro_services = repo_config.get('ReadOnlyServices') %}
   {{ repo_name | regex_replace('[^a-zA-Z0-9]', ' ') | title | regex_replace('\s', '') }}:
     Type: "AWS::ECR::Repository"
     Properties:
